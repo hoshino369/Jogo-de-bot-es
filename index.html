@@ -1,1 +1,149 @@
-429: Too Many Requests
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jogo de Cliques Ultra</title>
+<style>
+  body { font-family: Arial; background:#121212; color:#fff; display:flex; flex-direction:column; align-items:center; padding:20px;}
+  h1,h2,h3 { margin:5px;}
+  button { padding:15px 20px; font-size:16px; margin:5px; cursor:pointer; border-radius:10px; border:none; color:white; transition:0.2s;}
+  button:hover {opacity:0.8;}
+  .shop { display:flex; flex-wrap:wrap; justify-content:center; margin-top:20px;}
+  .upgrade { width:220px; margin:5px; padding:10px; border-radius:10px; text-align:center; font-size:14px;}
+  .highlight { border: 3px solid #fff; }
+  .buyOptions { margin:5px; }
+</style>
+</head>
+<body>
+
+<h1>Jogo de Cliques 🪙</h1>
+<h2>Moedas: <span id="coins">0</span></h2>
+<h3>Moedas por clique: <span id="perClick">1</span></h3>
+<h3>Moedas por segundo: <span id="perSecond">1</span></h3>
+<button id="clickBtn">Clique!</button>
+
+<div>
+  Comprar: 
+  <select id="buyAmount" class="buyOptions">
+    <option value="1">1x</option>
+    <option value="10">10x</option>
+    <option value="100">100x</option>
+  </select>
+</div>
+
+<div class="shop" id="shop"></div>
+
+<script>
+let coins = 0;
+let coinsPerClick = 1;
+let coinsPerSecond = 1;
+
+// Formatar números grandes
+function formatNumber(n){
+  if(n >= 1e33) return Math.floor(n/1e33)+" Decilhão";
+  if(n >= 1e30) return Math.floor(n/1e30)+" Nonilhão";
+  if(n >= 1e27) return Math.floor(n/1e27)+" Octilhão";
+  if(n >= 1e24) return Math.floor(n/1e24)+" Septilhão";
+  if(n >= 1e21) return Math.floor(n/1e21)+" Sextilhão";
+  if(n >= 1e18) return Math.floor(n/1e18)+" Quintilhão";
+  if(n >= 1e15) return Math.floor(n/1e15)+" Quadrilhão";
+  if(n >= 1e12) return Math.floor(n/1e12)+" Trilhão";
+  if(n >= 1e9) return Math.floor(n/1e9)+" Bilhões";
+  if(n >= 1e6) return Math.floor(n/1e6)+" Milhões";
+  if(n >= 1e3) return Math.floor(n/1e3)+" Mil";
+  return n;
+}
+
+// Magnitudes
+let magnitudes = [
+  {name:"1", value:1},
+  {name:"Mil", value:1e3},
+  {name:"Milhão", value:1e6},
+  {name:"Bilhão", value:1e9},
+  {name:"Trilhão", value:1e12},
+  {name:"Quadrilhão", value:1e15},
+  {name:"Quintilhão", value:1e18},
+  {name:"Sextilhão", value:1e21},
+  {name:"Septilhão", value:1e24},
+  {name:"Octilhão", value:1e27},
+  {name:"Nonilhão", value:1e30},
+  {name:"Decilhão", value:1e33}
+];
+
+let colors = ["#1e90ff","#32cd32","#ff6347","#ffa500","#da70d6","#ff69b4"];
+let upgrades = [];
+
+// Gerar upgrades
+magnitudes.forEach(m=>{
+  upgrades.push({name:`+${formatNumber(m.value)} por clique`, cost:100*m.value, type:"clickBoost", value:m.value, color:colors[0], level:0});
+  upgrades.push({name:`+${formatNumber(m.value)} por segundo`, cost:100*m.value, type:"auto", value:m.value, color:colors[1], level:0});
+  upgrades.push({name:`+${formatNumber(m.value*10)} por clique`, cost:1000*m.value, type:"clickBoost", value:m.value*10, color:colors[2], level:0});
+  upgrades.push({name:`+${formatNumber(m.value*10)} por segundo`, cost:1000*m.value, type:"auto", value:m.value*10, color:colors[3], level:0});
+  upgrades.push({name:`+${formatNumber(m.value*100)} por clique`, cost:2000*m.value, type:"clickBoost", value:m.value*100, color:colors[4], level:0});
+  upgrades.push({name:`+${formatNumber(m.value*100)} por segundo`, cost:2000*m.value, type:"auto", value:m.value*100, color:colors[5], level:0});
+});
+
+// Elementos
+let coinsDisplay = document.getElementById('coins');
+let perClickDisplay = document.getElementById('perClick');
+let perSecondDisplay = document.getElementById('perSecond');
+let clickBtn = document.getElementById('clickBtn');
+let shop = document.getElementById('shop');
+let buyAmountSelect = document.getElementById('buyAmount');
+
+// Criar botões
+upgrades.forEach(u=>{
+  let btn = document.createElement('button');
+  btn.className='upgrade';
+  btn.style.backgroundColor = u.color;
+  btn.innerHTML=`${u.name} - Custo: ${formatNumber(u.cost)}`;
+  btn.onclick=()=>buyUpgrade(u, parseInt(buyAmountSelect.value));
+  u.btn = btn; // guardar referência pro highlight
+  shop.appendChild(btn);
+});
+
+// Comprar upgrade
+function buyUpgrade(u, amount){
+  let totalCost = u.cost * amount;
+  if(coins>=totalCost){
+    coins -= totalCost;
+    u.level += amount;
+    if(u.type==="clickBoost") coinsPerClick += u.value*amount;
+    if(u.type==="auto") u.currentValue = (u.currentValue||0) + u.value*amount;
+    updateDisplay();
+  } else alert("Moedas insuficientes!");
+}
+
+// Clique
+clickBtn.addEventListener('click', ()=>{coins+=coinsPerClick; updateDisplay();});
+
+// Autoclique
+setInterval(()=>{
+  let totalAuto=0;
+  upgrades.forEach(u=>{if(u.type==="auto"&&u.currentValue) totalAuto+=u.currentValue;});
+  coins+=totalAuto;
+  updateDisplay();
+},1000);
+
+// Atualizar display
+function updateDisplay(){
+  coinsDisplay.textContent=formatNumber(coins);
+  perClickDisplay.textContent=formatNumber(coinsPerClick);
+  let totalAuto=0;
+  upgrades.forEach(u=>{if(u.type==="auto"&&u.currentValue) totalAuto+=u.currentValue;});
+  coinsPerSecond = totalAuto;
+  perSecondDisplay.textContent = formatNumber(coinsPerSecond);
+
+  // Highlight upgrade que pode comprar
+  upgrades.forEach(u=>{
+    if(coins>=u.cost) u.btn.classList.add('highlight');
+    else u.btn.classList.remove('highlight');
+  });
+}
+
+updateDisplay();
+</script>
+
+</body>
+</html>
