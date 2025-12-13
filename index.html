@@ -34,14 +34,15 @@
 </div>
 
 <div class="shop" id="shop"></div>
-
 <button id="menuCodes">...</button>
 
 <script>
 let coins = 0;
 let coinsPerClick = 1;
-let coinsPerSecondExtra = 0; // moedas por segundo de códigos, separadas
+let coinsPerSecondExtra = 0;
 let upgrades = [];
+let superClickMultiplier = 1;
+let turboSecondMultiplier = 1;
 
 // Formatar números grandes
 function formatNumber(n){
@@ -92,12 +93,12 @@ magnitudes.forEach(m=>{
 // Ajustar preços finais do Decilhão
 upgrades.forEach(u=>{
     if(u.name.includes("Decilhão")){
-        if(u.name.includes("+1") && u.type === "clickBoost") { u.cost = 1e35; u.name="+1 Decilhão por clique"; }
-        if(u.name.includes("+1") && u.type === "auto") { u.cost = 1e35; u.name="+1 Decilhão por segundo"; }
-        if(u.name.includes("+10") && u.type === "clickBoost") { u.cost = 1e36; u.name="+10 Decilhões por clique"; }
-        if(u.name.includes("+10") && u.type === "auto") { u.cost = 1e36; u.name="+10 Decilhões por segundo"; }
-        if(u.name.includes("+100") && u.type === "clickBoost") { u.cost = 2e36; u.name="+100 Decilhões por clique"; }
-        if(u.name.includes("+100") && u.type === "auto") { u.cost = 2e36; u.name="+100 Decilhões por segundo"; }
+        if(u.name.includes("+1") && u.type === "clickBoost") u.cost = 1e35;
+        if(u.name.includes("+1") && u.type === "auto") u.cost = 1e35;
+        if(u.name.includes("+10") && u.type === "clickBoost") u.cost = 1e36;
+        if(u.name.includes("+10") && u.type === "auto") u.cost = 1e36;
+        if(u.name.includes("+100") && u.type === "clickBoost") u.cost = 2e36;
+        if(u.name.includes("+100") && u.type === "auto") u.cost = 2e36;
     }
 });
 
@@ -134,7 +135,7 @@ function buyUpgrade(u, amount){
 }
 
 // Clique
-clickBtn.addEventListener('click', ()=>{coins+=coinsPerClick; updateDisplay();});
+clickBtn.addEventListener('click', ()=>{coins += coinsPerClick * superClickMultiplier; updateDisplay();});
 
 // Autoclique
 setInterval(()=>{
@@ -142,7 +143,7 @@ setInterval(()=>{
   upgrades.forEach(u=>{
       if(u.type==="auto" && u.currentValue) totalAuto += u.currentValue;
   });
-  coins += totalAuto + coinsPerSecondExtra;
+  coins += (totalAuto + coinsPerSecondExtra) * turboSecondMultiplier;
   updateDisplay();
 },1000);
 
@@ -150,67 +151,48 @@ setInterval(()=>{
 function updateDisplay(){
   coinsDisplay.textContent=formatNumber(coins);
   perClickDisplay.textContent=formatNumber(coinsPerClick);
-
   let totalAuto=0;
   upgrades.forEach(u=>{
       if(u.type==="auto" && u.currentValue) totalAuto += u.currentValue;
   });
   perSecondDisplay.textContent = formatNumber(totalAuto + coinsPerSecondExtra);
-
   upgrades.forEach(u=>{
     if(coins>=u.cost || u.free) u.btn.classList.add('highlight');
     else u.btn.classList.remove('highlight');
   });
 }
 
-updateDisplay();
-
 // --- MENU DE CÓDIGOS ---
 document.getElementById('menuCodes').addEventListener('click', ()=>{
     let code = prompt("Digite seu código:");
     if(!code) return;
-
     code = code.toLowerCase().trim();
 
-    if(code.includes("moedas.369")) {
-        let partes = code.split(" ");
-        if(partes.length===2){
-            let valor = parseFloat(partes[1]);
-            if(!isNaN(valor)){
-                coins += valor;
-                updateDisplay();
-                alert(`Você ganhou ${formatNumber(valor)} moedas!`);
-            } else alert("Valor inválido!");
-        } else alert("Formato correto: moedas.369 <quantidade>");
-    }
-    else if(code === "grátis.loja"){
-        upgrades.forEach(u=> u.free = true);
-        alert("Todos os upgrades agora podem ser comprados gratuitamente!");
-    }
-    else if(code === "desativar.369"){
-        upgrades.forEach(u=> u.free = false);
-        alert("Todos os códigos desativados!");
-    }
-    else if(code === "vermelho.fundo"){ document.body.style.background = "#ff9999"; }
-    else if(code === "azul.fundo"){ document.body.style.background = "#99ccff"; }
-    else if(code === "verde.fundo"){ document.body.style.background = "#99ff99"; }
-    else if(code.startsWith("moeda.clique ")){
+    if(code.startsWith("moedas.369")){
         let valor = parseFloat(code.split(" ")[1]);
-        if(!isNaN(valor)){ coinsPerClick += valor; alert(`Moedas por clique aumentadas em ${valor}!`); }
+        if(!isNaN(valor)){ coins += valor; updateDisplay(); alert(`Você ganhou ${formatNumber(valor)} moedas!`);}
+    }
+    else if(code === "grátis.loja"){ upgrades.forEach(u=> u.free = true); alert("Todos os upgrades grátis!"); }
+    else if(code === "desativar.369"){ upgrades.forEach(u=> u.free = false); alert("Códigos desativados!"); }
+    else if(code === "vermelho.fundo"){ document.body.style.background="#ff9999"; }
+    else if(code === "azul.fundo"){ document.body.style.background="#99ccff"; }
+    else if(code === "verde.fundo"){ document.body.style.background="#99ff99"; }
+    else if(code.startsWith("moeda.clique ")){
+        let valor=parseFloat(code.split(" ")[1]); if(!isNaN(valor)){ coinsPerClick += valor; alert(`+${valor} moedas por clique!`); }
     }
     else if(code.startsWith("moeda.segundo ")){
-        let valor = parseFloat(code.split(" ")[1]);
-        if(!isNaN(valor)){ coinsPerSecondExtra += valor; alert(`Moedas por segundo aumentadas em ${valor}!`); }
+        let valor=parseFloat(code.split(" ")[1]); if(!isNaN(valor)){ coinsPerSecondExtra += valor; alert(`+${valor} moedas por segundo!`); }
     }
-    else if(code.startsWith("nome.jogo ")){
-        let nome = code.substring(10);
-        if(nome) gameTitle.innerText = nome;
-    }
-    else if(code === "x2.cliques"){ coinsPerClick *= 2; alert("Cliques dobrados!"); }
+    else if(code.startsWith("nome.jogo ")){ gameTitle.innerText = code.substring(10); }
+    else if(code === "x2.cliques"){ coinsPerClick *=2; alert("Cliques dobrados!"); }
     else if(code === "x2.autoclique"){ upgrades.forEach(u=>{if(u.type==="auto") u.currentValue*=2}); alert("Autoclique dobrado!"); }
     else if(code === "dinheiro.infinito"){ coins = 1e40; updateDisplay(); alert("Dinheiro infinito liberado!"); }
-    else if(code === "reset.clique"){ coinsPerClick = 1; alert("Moedas por clique resetadas!"); }
-    else if(code === "reset.segundos"){ upgrades.forEach(u=>{if(u.type==="auto") u.currentValue=0}); coinsPerSecondExtra = 0; updateDisplay(); alert("Autocliques resetados!"); }
+    else if(code === "reset.clique"){ coinsPerClick = 1; alert("Cliques resetados!"); }
+    else if(code === "reset.segundos"){ upgrades.forEach(u=>{if(u.type==="auto") u.currentValue=0}); coinsPerSecondExtra=0; updateDisplay(); alert("Autocliques resetados!"); }
+    else if(code === "reset.moedas"){ coins = 0; updateDisplay(); alert("Moedas resetadas!"); }
+    else if(code === "super.click"){ superClickMultiplier = 5; alert("Super clique ativado por 1 minuto!"); setTimeout(()=>{superClickMultiplier=1; alert("Super clique terminou!");},60000); }
+    else if(code === "turbo.segundo"){ turboSecondMultiplier = 5; alert("Turbo segundos ativado por 1 minuto!"); setTimeout(()=>{turboSecondMultiplier=1; alert("Turbo terminou!");},60000); }
+    else if(code === "glow.upgrade"){ upgrades.forEach(u=> u.btn.classList.add("highlight")); alert("Todos os upgrades brilham!"); }
     else { alert("Código inválido!"); }
 });
 </script>
